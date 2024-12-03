@@ -8,6 +8,7 @@ import {
   Modal,
 } from 'react-native';
 import { CameraView } from 'expo-camera';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PartnerCheckIn() {
   const [qrData, setQrData] = useState<string | null>(null);
@@ -23,23 +24,33 @@ export default function PartnerCheckIn() {
     setIsSending(true);
 
     try {
-      const response = await fetch(`https://api.secompufpe.com/palestras/checkin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ qrCode: data }),
-      });
-
-      if (response.ok) {
-        setModalMessage('Check-in realizado com sucesso!');
-      } else {
-        const errorData = await response.json();
-        setModalMessage(
-          errorData.status === 'fila'
-            ? 'Você está na lista de espera!'
-            : 'Erro ao realizar check-in. Tente novamente.'
-        );
+      const fetchUserInfo = async () => {
+        try {
+          const token = await AsyncStorage.getItem('token');
+          if (!token) throw new Error('Token não encontrado');
+            const response = await fetch(`https://api.secompufpe.com/palestras/checkin`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ qrCode: data }),
+          });
+          console.log(response)
+          if (response.ok) {
+            setModalMessage('Check-in realizado com sucesso!');
+          } else {
+            const errorData = await response.json();
+            setModalMessage(
+              errorData.status === 'fila'
+                ? 'Você está na lista de espera!'
+                : 'Erro ao realizar check-in. Tente novamente.'
+            );
+          }
+        } catch(error) {
+          console.log(error);
+        }
+        fetchUserInfo();
       }
     } catch (error) {
       setModalMessage('Erro ao enviar os dados. Verifique sua conexão.');
@@ -88,7 +99,7 @@ export default function PartnerCheckIn() {
         <Text style={styles.qrText}>Último QR Code lido: {qrData}</Text>
       )}
 
-      {isSending && <ActivityIndicator size="large" color="#ffffff" />}
+      {isSending && <ActivityIndicator size="large" color="#000" />}
 
       <Modal
         transparent={true}
@@ -205,5 +216,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     fontSize: 16,
     textAlign: 'center',
+    color: '#000'
   },
 });

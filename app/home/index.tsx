@@ -150,7 +150,7 @@ export default function HomeScreen() {
   }, [index, eventosPorData]);
   
   const handleEventoPress = (id: string, title: string) => {
-    router.push(`/palestra/${id}/register`);
+    router.push(`/palestra/${id}/checkin`);
   };
 
   if (loading) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Checkin() {
   const { id } = useLocalSearchParams();
@@ -49,27 +50,40 @@ export default function Checkin() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`https://api.secompufpe.com/palestras/${id}/checkin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ usuario_email: data }),
-      });
-
-      if (response.ok) {
-        setMessage('Check-in realizado com sucesso!');
-        setMessageColor('#32CD32');
-      } else {
-        const responseJson = await response.json();
-        if (responseJson.status === 'fila') {
-          setMessage('Você está na lista de espera!');
-          setMessageColor('#FFA500');
-        } else {
-          setMessage('Falha ao registrar usuário na palestra.');
-          setMessageColor('#FF6347');
-        }
+      const fetchUserInfo = async () => {
+        try {
+          const token = await AsyncStorage.getItem('token');
+          if (!token) throw new Error('Token não encontrado');
+            const response = await fetch(`https://api.secompufpe.com/palestras/${id}/checkin`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ usuario_email: data }),
+            });
+            console.log(response);
+            if (response.ok) {
+              setMessage('Check-in realizado com sucesso!');
+              setMessageColor('#32CD32');
+            } else {
+              const responseJson = await response.json();
+              if (responseJson.status === 'fila') {
+                setMessage('Você está na lista de espera!');
+                setMessageColor('#FFA500');
+              } else if (responseJson.error) {
+                setMessage(responseJson.error);
+              } 
+              else {
+                setMessage('Falha ao registrar usuário na palestra.');
+                setMessageColor('#FF6347');
+              }
+            }
+        } catch (err) {
+        console.error(err);
       }
+    }
+    fetchUserInfo()
     } catch (error) {
       setMessage('Erro ao registrar na palestra.');
       setMessageColor('#FF6347');
@@ -96,12 +110,12 @@ export default function Checkin() {
               <Text style={styles.resultText}>{message}</Text>
             </View>
           )}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.button}
             onPress={() => setQrCodeData(null)}
           >
             <Text style={styles.text}>Ler outro QR Code</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       ) : (
         <CameraView
@@ -153,12 +167,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: 'white',
   },
   resultText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#000',
   },
   messageContainer: {
     position: 'absolute',
